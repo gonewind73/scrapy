@@ -109,6 +109,18 @@ class domainsprider():
             pass
         
         return
+    
+    def getSiteId(self,domain):
+        url = "http://top.chinaz.com//Html/site_"+domain+".html"
+        try:
+            response = requests.get(url)
+            #print(response.text.encode(response.encoding).decode('utf-8'))
+            siteidlist = re.findall(r'(?<=网站备案：)[\S]*(?=</p>)',response.text.encode(response.encoding).decode('utf-8'))
+            siteid = siteidlist[0].split("<")[0]
+            return siteid
+        except:
+            pass 
+        return ""
         
     def savelist(self):   
         try:
