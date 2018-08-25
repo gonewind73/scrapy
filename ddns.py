@@ -35,27 +35,28 @@ if __name__ == '__main__':
         localeth0ip=""
         ip138=""
         try:
-            localwlanip = get_ip_address(b'wlan0');
-            localeth0ip = get_ip_address(b'eth0');
+            localwlanip = get_ip_address(b'wlan0')
+            localeth0ip = get_ip_address(b'eth0')
             ip138=re.findall(r"\[.+\]",requests.get("http://1212.ip138.com/ic.asp").text)[0][1:-1]
             
             if ((localwlanip!=oldlocalwlanip) or (oldip138!=ip138) or (localeth0ip!=oldlocaleth0ip)):
-                file=open("/tmp/ddns.log","w");
-                file.write(localwlanip);
-                file.write(localeth0ip);
-                file.write(ip138);
-                file.close();
+                file=open("/tmp/ddns.log","w")
+                file.write(localwlanip)
+                file.write(localeth0ip)
+                file.write(ip138)
+                file.close()
                 print(localwlanip,localeth0ip,ip138)
                 oldlocaleth0ip=localeth0ip
                 oldip138=ip138
                 oldlocalwlanip=localwlanip
                 r=requests.post("http://gonewind.pythonanywhere.com/postip",
-                            {"wlanip":localwlanip,"138ip":ip138,"eth0ip":localeth0ip});
+                            {"wlanip":localwlanip,"138ip":ip138,"eth0ip":localeth0ip})
                 time.sleep(300)
         except:
             r=requests.post("http://gonewind.pythonanywhere.com/postip",
-                            {"wlanip":localwlanip,"138ip":ip138,"eth0ip":localeth0ip});
+                            {"wlanip":localwlanip,"138ip":ip138,"eth0ip":localeth0ip})
             time.sleep(3600)
 
     
-    
+'''test
+'''
