@@ -2,6 +2,7 @@
 Created on 2016年5月9日
 
 @author: heguofeng
+从Chinaz 搜索top网站，
 '''
 
 import requests
@@ -9,9 +10,10 @@ import _thread
 import threading
 import csv
 from datetime import datetime, date, time
+import optparse
 
 import re
-from flask.testsuite import catch_stderr
+
 
 import ssl
 import socket
@@ -21,16 +23,24 @@ class domainsprider():
     def __init__(self):
         self.list=[]
         self.csvfile=open('domain.csv', 'w', newline='')
-        fieldnames = ['title', 'domainname',"email","isHttps","notAfter"]
+        fieldnames = ['title', 'domainname',"email","isHttps","notAfter","siteid"]
         self.writer = csv.DictWriter(self.csvfile, fieldnames=fieldnames)
         self.writer.writeheader()
+        self.html = ""
+        
         pass
-    
-    def spride(self,url):
-        self.list=[]
+
+    def gethtml(self,url):
         r=requests.get(url)
-        html=r.text.encode(r.encoding).decode("utf-8")
-        DomainTitle=re.findall(r'(?<=/Html/site_)[\S]*\stitle\=[\S]*(?=\starget)',html)
+        self.html=r.text.encode(r.encoding).decode("utf-8")
+    
+    def spride(self,url=""):
+        self.list=[]
+        # r=requests.get(url)
+        # html=r.text.encode(r.encoding).decode("utf-8")
+        if self.html == "" and not url == "":
+            self.gethtml(url)
+        DomainTitle=re.findall(r'(?<=/Html/site_)[\S]*\stitle\=[\S]*(?=\starget)',self.html)
         
         print(DomainTitle)
         
@@ -49,6 +59,7 @@ class domainsprider():
            
             
             _thread.start_new_thread(self.getnotAfter,t)
+            _thread.start_new_thread(self.getSiteId,(self.list[i]["domainname"],i))
             #except:
             #   print( "Error: unable to start thread")
             #self.list[i].append(self.ishttps(self.list[i][0]))
@@ -110,13 +121,14 @@ class domainsprider():
         
         return
     
-    def getSiteId(self,domain):
+    def getSiteId(self,domain,i=0):
         url = "http://top.chinaz.com//Html/site_"+domain+".html"
         try:
             response = requests.get(url)
             #print(response.text.encode(response.encoding).decode('utf-8'))
             siteidlist = re.findall(r'(?<=网站备案：)[\S]*(?=</p>)',response.text.encode(response.encoding).decode('utf-8'))
             siteid = siteidlist[0].split("<")[0]
+            (self.list[i])["siteid"]=siteid
             return siteid
         except:
             pass 
@@ -126,6 +138,7 @@ class domainsprider():
         try:
             for i in range(0,len(self.list)):
                 self.writer.writerow(self.list[i])
+                self.csvfile.flush()
         except:
             print("Error:!!!")
             print(self.list[i])
@@ -134,11 +147,13 @@ class domainsprider():
     def close(self):
         self.csvfile.close()
 
-    def getPages(self,url):
-        r=requests.get(url)
-        html=r.text.encode(r.encoding).decode("utf-8")
+    def getPages(self,url=""):
+        # r=requests.get(url)
+        # html=r.text.encode(r.encoding).decode("utf-8")
         #<div class="ListPageWrap">
-        pages=re.findall(r'(?<=\<div\sclass=\"ListPageWrap\"\>).*(?=\</div\>)',html)
+        if self.html == "" and not url == "":
+            self.gethtml(url)
+        pages=re.findall(r'(?<=\<div\sclass=\"ListPageWrap\"\>).*(?=\</div\>)',self.html)
         pageno=re.findall(r'\d+',pages[0])
         max=0
         for item in pageno:
@@ -171,13 +186,23 @@ class domainsprider():
 
 if __name__ == '__main__':
     
-    
+    parser = optparse.OptionParser()
+    parser.add_option('--mode', default="shanghai", dest='mode', help='set scrapy mode,default is shanghai')
+    parser.add_option('--siteid', default="yes", dest='siteid', help='get siteid info')
+    parser.add_option('--https', default="no", dest='https', help='get https info ')
+    opt, args = parser.parse_args()
+
+    if opt.mode == "shanghai" : 
+        url_base="http://top.chinaz.com/diqu/index_ShangHai"
+    if opt.siteid == "yes" :
+        parser.print_help()
     
     ds=domainsprider()
     
     
     #url="http://top.chinaz.com/diqu/index_ShangHai.html"
-    url="http://top.chinaz.com/hangye/index_shopping.html"
+    #url="http://top.chinaz.com/hangye/index_shopping.html"
+    url = url_base + ".html" 
     pages=ds.getPages(url)
 
     
@@ -186,8 +211,10 @@ if __name__ == '__main__':
     for i in range(2,pages+1):
         print(i)
         #url="http://top.chinaz.com/diqu/index_ShangHai_"+str(i)+".html"
-        url="http://top.chinaz.com/hangye/index_shopping_"+str(i)+".html"
-        ds.spride(url)
+        #url="http://top.chinaz.com/hangye/index_shopping_"+str(i)+".html"
+        url = url_base +"_"+str(i)+".html"
+        ds.gethtml(url)
+        ds.spride()
         ds.savelist()
     
     
